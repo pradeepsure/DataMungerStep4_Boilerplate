@@ -4,10 +4,22 @@ public class Header {
 
 	/*
 	 * This class should contain a member variable which is a String array, to hold
-	 * the headers and should override toString() method as well.
+	 * the headers.
 	 */
+
+	private String[] headers;
+
+	public Header(String[] headers) {
+		super();
+		this.headers = headers;
+	}
+
+	public void setHeaders(String[] headers) {
+		this.headers = headers;
+	}
+
 	public String[] getHeaders() {
-		return null;
+		return headers;
 	}
 
 }

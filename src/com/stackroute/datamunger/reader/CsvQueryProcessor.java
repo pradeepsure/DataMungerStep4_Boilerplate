@@ -1,6 +1,8 @@
 package com.stackroute.datamunger.reader;
 
+import java.io.BufferedReader;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 
 import com.stackroute.datamunger.query.DataTypeDefinitions;
@@ -8,13 +10,30 @@ import com.stackroute.datamunger.query.Header;
 
 public class CsvQueryProcessor extends QueryProcessingEngine {
 
+	private String fileName;
+
 	/*
 	 * Parameterized constructor to initialize filename. As you are trying to
 	 * perform file reading, hence you need to be ready to handle the IO Exceptions.
 	 */
-	
-	public CsvQueryProcessor(String fileName) throws FileNotFoundException {
 
+	public CsvQueryProcessor(String fileName) throws FileNotFoundException {
+		FileReader fr = null;
+		try {
+			fr = new FileReader(fileName);
+			this.fileName = fileName;
+		} finally {
+			if (fr != null)
+				try {
+					fr.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+		}
+	}
+
+	public String getFileName() {
+		return fileName;
 	}
 
 	/*
@@ -24,8 +43,20 @@ public class CsvQueryProcessor extends QueryProcessingEngine {
 
 	@Override
 	public Header getHeader() throws IOException {
-		
-		return null;
+		String[] columns = null;
+		BufferedReader br = null;
+		try {
+			// read the first line
+			br = new BufferedReader(new FileReader(getFileName()));
+			String headerLineStr = br.readLine();
+
+			// populate the header object with the String array containing the header names
+			columns = headerLineStr.split(",");
+		} finally {
+			if (br != null)
+				br.close();
+		}
+		return new Header(columns);
 	}
 
 	/**
@@ -49,29 +80,54 @@ public class CsvQueryProcessor extends QueryProcessingEngine {
 	 * 'mm/dd/yyyy','dd-mon-yy','dd-mon-yyyy','dd-month-yy','dd-month-yyyy','yyyy-mm
 	 * -dd')
 	 */
-	
+
 	@Override
 	public DataTypeDefinitions getColumnType() throws IOException {
+		DataTypeDefinitions dataTypeDefinitions = null;
+		BufferedReader br = null;
+		try {
+			br = new BufferedReader(new FileReader(getFileName()));
+			br.readLine();// header line @row1
+			String dataLineStr = br.readLine();// data @row2
+			String[] columns = dataLineStr.split(",", 18);
+
+			String[] dataTypeArray = new String[columns.length];
+			int count = 0;
+			for (String s : columns) {
+				if (s.matches("[0-9]+")) {
+					dataTypeArray[count] = java.lang.Integer.class.getName();
+					count++;
+				} else if (s.trim().length() == 0) {
+					dataTypeArray[count] = java.lang.Object.class.getName();
+					count++;
+				} else if (s.matches( "[0-3][0-9]/[0-1][0-9]/[0-9]{4}|[0-1][0-9]/[0-3][0-9]/[0-9]{4}|[0-3][0-9]-[a-z]{3}-[0-9]{2}|[0-3][0-9]-[a-z]{3}-[0-9]{4}|[0-3][0-9]-[a-z]*-[0-9]{2}|[0-3][0-9]-[a-z]*-[0-9]{4}|[0-9]{4}/[0-1][0-9]/[0-3][0-9]|[0-9]{4}-[0-1][0-9]-[0-3][0-9]")) {
+					// checking for floating point numbers
+					// checking for date format dd/mm/yyyy
+					// checking for date format mm/dd/yyyy
+					// checking for date format dd-mon-yy
+					// checking for date format dd-mon-yyyy
+					// checking for date format dd-month-yy
+					// checking for date format dd-month-yyyy
+					// checking for date format yyyy-mm-dd
+					dataTypeArray[count] = java.util.Date.class.getName();
+					count++;
+				} else {
+					dataTypeArray[count] = java.lang.String.class.getName();
+					count++;
+				}
+				System.out.println(s+"==>"+dataTypeArray[count-1]);
+			}
+			dataTypeDefinitions = new DataTypeDefinitions(dataTypeArray);
+		} finally {
+			if (br != null)
+				br.close();
+		}
+
 		
-		// checking for Integer
 
-		// checking for floating point numbers
 
-		// checking for date format dd/mm/yyyy
 
-		// checking for date format mm/dd/yyyy
-
-		// checking for date format dd-mon-yy
-
-		// checking for date format dd-mon-yyyy
-
-		// checking for date format dd-month-yy
-
-		// checking for date format dd-month-yyyy
-
-		// checking for date format yyyy-mm-dd
-
-		return null;
+		return dataTypeDefinitions;
 	}
 
 }
